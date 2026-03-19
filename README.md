@@ -116,7 +116,11 @@ If MySQL fails to start in XAMPP:
 - Confirm MySQL is running
 - Check browser cookie for `PHPSESSID`
 - Verify backend auth middleware behavior in `backend/middleware/auth.php`
+วิดีโอนำเสนอโครงงานวิทยาการคอมพิวเตอร์
+https://drive.google.com/file/d/1xyd6qoQuvfO2Hm_-9GfnzBLy6h7Q3CMX/view?usp=sharing
 
 ## Notes
 - Some development docs and UI text are in Thai language.
 - Uploaded files and profile images are stored under `uploads/`.
+## วิดีโอนำเสนอโครงงานวิทยาการคอมพิวเตอร์
+- https://drive.google.com/file/d/1xyd6qoQuvfO2Hm_-9GfnzBLy6h7Q3CMX/view?usp=sharing
