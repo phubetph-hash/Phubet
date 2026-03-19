@@ -1,0 +1,22 @@
+.config/
+
+# Node/Next.js artifacts
+node_modules/
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+
+# PHP dependencies
+backend/vendor/
+
+# Local env and logs
+frontend/.env*
+*.log
+
+# Uploaded runtime files
+uploads/
+
+# OS/editor junk
+.DS_Store
+Thumbs.db
+.vscode/

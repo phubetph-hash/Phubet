@@ -1,0 +1,1 @@
+'Updated admin: ' . \$old_admin . ' - . \$new_admin . PHP_EOL;

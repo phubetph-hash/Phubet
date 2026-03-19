@@ -1,0 +1,12 @@
+<IfModule mod_headers.c>
+    # IMPORTANT: PHP will handle CORS via cors.php
+    # Do NOT set CORS headers here to avoid conflicts
+    # Let PHP dynamically set based on origin
+</IfModule>
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^api/(.+)$ api/$1.php [L,QSA]
+</IfModule>

@@ -1,0 +1,63 @@
+ระบบที่ปรึกษานิสิต - แผนทดสอบถัดไป (สำหรับนิสิต)
+
+A. เตรียมสภาพแวดล้อม
+1) Backend/XAMPP ทำงาน (Apache + MySQL) และ import DB ล่าสุดแล้ว
+2) Frontend รัน npm run dev และเปิด http://localhost:300x
+3) ตรวจ .env.local ว่าชี้ NEXT_PUBLIC_API_BASE_URL=http://localhost/project-advisor-system/backend
+
+B. ทดสอบ Auth/Session (ทุก role)
+1) Login ด้วยบัญชี:
+   - Admin: admin@ku.th / 123456
+   - Student/Advisor ตัวอย่างจากฐานข้อมูล (โดเมน @ku.th)
+2) ตรวจ redirect ตาม role → Admin / Advisor / Student Dashboard
+3) กดปุ่ม “ออกจากระบบ” ต้องกลับไปหน้า /login และล้าง localStorage
+4) กด back/refresh หลัง logout ไม่ควรเข้าหน้า dashboard ได้ (ถูกพากลับ /login)
+
+C. Student Flow
+1) Dashboard แสดงสถิติ (mock/จริงตาม API ปัจจุบัน)
+2) ไปหน้า Advisor List /advisor (ตรวจค้น/กรองพื้นฐานทำงานได้)
+3) เปิด Advisor Detail /advisor/[id]
+4) ส่งคำขอ (Submit Request) พร้อมอัปโหลด PDF (ไฟล์ <= 5MB ชนิด application/pdf)
+   - กรณีไม่กรอก/ชนิดไฟล์ผิด ต้องมีข้อความเตือน
+5) เปิดหน้า Request Status /request-status ตรวจเห็นรายการที่เพิ่งส่ง
+
+D. Advisor Flow
+1) Login ด้วยบัญชีอาจารย์
+2) Dashboard แสดงความจุ/สถิติ (mock/จริงตาม API ปัจจุบัน)
+3) ไปหน้า Manage Requests /advisor/requests
+   - อนุมัติ/ปฏิเสธคำขอ และตรวจผลสะท้อนที่ Student
+4) ไปหน้า Profile /advisor/profile ลองแก้ข้อมูล (rank/degree/expertise/capacity/phone)
+
+E. Admin Flow
+1) Dashboard แสดงสถิติและกิจกรรม (mock/จริงตาม API ปัจจุบัน)
+2) User Management /admin/users
+   - ค้นหา/ดูรายละเอียด/แก้ไข/ลบ/รีเซ็ตรหัส/เปลี่ยนสถานะ
+3) Master Data /admin/master-data
+   - เพิ่ม/แก้/ลบ faculty, department, program, expertise, academic_term
+
+F. ความถูกต้องของข้อมูล/กฎธุรกิจ
+1) ส่งคำขอนิสิต: ป้องกันซ้ำกับอาจารย์คนเดิมในสถานะรอดำเนินการ
+2) จำกัด pending ไม่เกิน 5 รายการต่อคน
+3) อนุมัติคำขอหนึ่งรายการ → ระบบยกเลิก (auto-cancel) รายการค้างอื่นของนิสิต
+4) ตรวจ capacity ของอาจารย์ ไม่ให้อนุมัติเกินกำลังรับ
+
+G. Upload & Files
+1) อัปโหลดไฟล์ proposal ต้องผ่าน MIME/ขนาด/นามสกุล
+2) ตรวจว่าไฟล์ถูกจัดเก็บที่ backend/uploads/proposals/{request_id}/proposal.pdf
+
+H. CORS/Session
+1) ทดสอบจากพอร์ต Next.js ที่ต่างกัน (3000/3001/3002/3004) ยังเรียก API ได้
+2) รีเฟรชหน้า/เปิดแท็บใหม่ cookie/session ยังอยู่ (ถ้าใช้ session)
+
+I. ความปลอดภัยพื้นฐาน
+1) ช่องกรอกข้อมูลป้องกัน XSS เบื้องต้น (ไม่รับสคริปต์)
+2) เรียก API ด้วยข้อมูลไม่ถูกต้อง ต้องได้ error JSON ที่เหมาะสม
+3) หน้าที่ต้องมีสิทธิ์: หากไม่มี session ให้ redirect ไป /login
+
+J. รายงานบั๊ก/หลักฐาน
+1) บันทึกวิดีโอสั้นๆ หรือ screenshot ทุก flow ที่ทดสอบ
+2) แนบ URL/เวลา และข้อความผิดพลาดชัดเจน
+
+หมายเหตุ:
+- บางหน้าปัจจุบันยังเป็นข้อมูลจำลอง (mock) ให้โฟกัสความถูกต้องของ flow และการเชื่อม API เป็นหลัก
+- หากติด CORS ให้ตรวจ .htaccess และ Origin ของพอร์ต Next.js

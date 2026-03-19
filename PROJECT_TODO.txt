@@ -1,0 +1,104 @@
+Project Advisor System - TODO Checklist
+
+Legend:
+[ ] = Pending    [x] = Completed    [-] = In progress
+
+Last updated: (fill when you update)
+
+1) Database (schema/seeds/views)
+[x] Create AdvisorDB schema from DB_v1.sql
+[x] Add academic_rank table + seed (LECT/ASST/ASSOC/PROF)
+[x] Add academic_degree table + seed (NONE/PHD)
+[x] Add academic_term sample seeds (2567/ปลาย, 2568/ต้น)
+[x] Add auth_accounts view for roleless login
+[x] Add default administrator (email: admin, password: 123456 hashed SHA2-256)
+[x] Request table: project_title + status includes 'หมดอายุ'
+
+2) Backend (PHP/XAMPP) - API structure
+[x] Switch DB name in backend/connect.php to AdvisorDB (via config.php)
+[x] Move DB credentials to backend/config.php and include where needed
+[x] Create directories: backend/api/auth, students, advisors, requests, master, helpers
+[x] CORS config for http://localhost:3000 (in endpoints created)
+
+Auth
+[x] POST /api/auth/login (roleless) using auth_accounts (SHA2-256 compare)
+[x] POST /api/auth/logout
+
+Registration & Profile (Students)
+[x] POST /api/students (check duplicate email via auth_accounts)
+[x] GET /api/students?id=...
+[x] PUT /api/students?id=...
+
+Registration & Profile (Advisors)
+[x] POST /api/advisors (check duplicate email via auth_accounts)
+[x] GET /api/advisors/:id
+[x] PUT /api/advisors/:id (rank/degree/expertise/capacity)
+
+Advisor Listing
+[x] GET /api/advisors (filters: q, expertise_id, program_id, faculty_id, available_only; pagination)
+
+Requests
+[x] POST /api/requests (submit; validate capacity; enforce <=5 pending per student)
+[x] GET /api/requests?student_id=...
+[x] GET /api/requests?advisor_id=...
+[x] GET /api/requests/:id
+[x] PATCH /api/requests/:id/status (approve/reject with suggestion; transaction + auto-cancel others)
+[x] POST /api/requests/:id/file (PDF upload; MIME/size validation; store path)
+
+Master Data (Admin only)
+[ ] CRUD: faculties, departments, programs, expertises, academic-terms
+
+Helpers (read-only, cacheable)
+[x] GET /api/helpers/faculties
+[x] GET /api/helpers/departments?faculty_id=...
+[x] GET /api/helpers/programs?department_id=...
+[x] GET /api/helpers/expertises
+[x] GET /api/helpers/academic-terms?active=true
+
+Middleware & Security
+[x] Session management (simple PHP session enabled in auth login/logout)
+[x] Rate limit /auth/login (session-based IP bucket)
+[ ] Role guard per endpoint (can use middleware/auth.php require_auth())
+[ ] CSRF protection for state-changing endpoints (if using cookie sessions)
+[ ] XSS-safe JSON responses (encode & strict content-type)
+
+Background Jobs
+[x] Daily task script to set Pending past expire_date -> 'หมดอายุ' (backend/jobs/expire_requests.php)
+
+3) Frontend (Next.js 15 / React 19)
+[ ] Add .env.local with NEXT_PUBLIC_API_BASE_URL=http://localhost/project-advisor-system/backend/api
+[ ] Create API client (fetch wrapper) with error handling
+
+Pages wiring
+[ ] /login -> POST /auth/login, save session/role
+[ ] /register -> POST /students or /advisors; use helpers for dropdowns
+[ ] /advisor -> GET /advisors with filters & pagination; show available capacity
+[ ] /advisor/[id] -> GET advisor detail; action to submit request
+[ ] /request-status -> GET student requests; show status badges & details
+[ ] /profile (student) -> GET/PUT profile; change password flow
+[ ] /advisor/dashboard -> show capacity (approved vs capacity), stats
+[ ] /advisor/requests -> list by status tabs; approve/reject with suggestion
+[ ] /admin/* -> master data CRUD screens
+
+UI/UX
+[ ] Form validation (client-side) and error states
+[ ] File upload (PDF preview/size limits)
+[ ] Responsive layout with Tailwind CSS
+
+4) Testing & QA
+[ ] Unit: auth (login/register), capacity calculation, status transitions
+[ ] Integration: submit -> approve -> auto-cancel; upload/download file
+[ ] System/UAT: full flows for all roles
+[ ] Security tests: SQLi, XSS, CSRF, session handling
+
+5) Documentation & Ops
+[x] PROJECT_REFERENCE.txt (EN) and PROJECT_REFERENCE_TH.txt (TH)
+[x] Document SHA2-256 password hashing + default admin credentials
+[ ] API reference (endpoints, params, examples)
+[ ] Deployment guide (XAMPP + Next.js) and environment setup
+[ ] Troubleshooting checklist
+
+Notes
+- Default admin: email=admin, password=123456 (SHA2-256).
+- File storage: backend/uploads/proposals/{request_id}/proposal.pdf (sanitize filename, validate MIME, max 5 MB).
+- Auto-cancel logic and <=5 pending rule are included in reference docs with SQL pseudocode.

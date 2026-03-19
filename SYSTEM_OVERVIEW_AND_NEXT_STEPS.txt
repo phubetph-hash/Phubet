@@ -1,0 +1,248 @@
+# ระบบที่ปรึกษานิสิต (Student Advisor System) - ภาพรวมและแผนการดำเนินงาน
+
+## ภาพรวมระบบ
+
+### วัตถุประสงค์
+ระบบจัดการการขอคำปรึกษาจากอาจารย์ที่ปรึกษาสำหรับนิสิต โดยนิสิตสามารถส่งคำขอได้พร้อมกัน 5 คน และเมื่อมีอาจารย์ 1 คนรับเป็นที่ปรึกษา คำขออื่นๆ จะถูกยกเลิกอัตโนมัติ
+
+### กลุ่มผู้ใช้งาน
+1. **นิสิต (Student)** - ขอคำปรึกษาจากอาจารย์
+2. **อาจารย์ที่ปรึกษา (Advisor)** - รับ/ปฏิเสธคำขอ และจัดการนิสิตที่ปรึกษา
+3. **ผู้ดูแลระบบ (Administrator)** - จัดการข้อมูลพื้นฐานและผู้ใช้งาน
+
+### ฟีเจอร์หลัก
+- การลงทะเบียนและเข้าสู่ระบบ (Roleless Login)
+- การค้นหาและเลือกอาจารย์ที่ปรึกษา
+- การส่งคำขอและอัปโหลดเอกสาร
+- การอนุมัติ/ปฏิเสธคำขอ
+- การจัดการข้อมูลพื้นฐาน (Master Data)
+- การจัดการผู้ใช้งาน
+
+## สถาปัตยกรรมระบบ
+
+### Database (MySQL)
+- **ตารางหลัก**: student, advisor, administrator, faculty, department, program, expertise, academic_term, request
+- **ตารางความสัมพันธ์**: advisor_expertise (many-to-many)
+- **ตารางเสริม**: academic_rank, academic_degree, student_advisor (optional)
+- **Views**: auth_accounts, advisor_capacity_view
+- **Security**: SHA2-256 password hashing
+
+### Backend (PHP)
+- **API Structure**: RESTful API with JSON responses
+- **Authentication**: Session-based with roleless login
+- **Security**: CORS, Rate Limiting, Prepared Statements, Transaction Management
+- **File Handling**: PDF upload with validation
+
+### Frontend (Next.js 15 + React 19)
+- **Framework**: Next.js 15 with App Router
+- **Styling**: Tailwind CSS 4
+- **State Management**: React Hooks
+- **API Integration**: Fetch wrapper with error handling
+
+## สถานะปัจจุบัน
+
+### ✅ เสร็จแล้ว
+1. **Database Schema** - ครบถ้วนพร้อม seed data
+2. **Backend APIs** - ครบทุก endpoint หลัก
+3. **Authentication System** - Roleless login
+4. **File Upload System** - PDF validation
+5. **Business Logic** - 5 pending requests limit, auto-cancel logic
+6. **UI/UX Design** - ครบทุกหน้าหลัก (จาก Figma)
+
+### 🔄 กำลังดำเนินการ
+- Frontend Implementation
+- API Integration
+- Testing & QA
+
+### ⏳ ยังไม่เริ่ม
+- User Management (Admin)
+- Advanced Features
+- Deployment
+
+## แผนการดำเนินงานต่อไป
+
+### Phase 1: Frontend Core (สัปดาห์ที่ 1-2)
+1. **Setup & Configuration**
+   - Environment variables (.env.local)
+   - API client setup
+   - Error handling system
+
+2. **Authentication Pages**
+   - Login page
+   - Register pages (Student/Advisor)
+   - Password reset flow
+
+3. **Student Pages**
+   - Dashboard
+   - Advisor list with filters
+   - Advisor detail page
+   - Submit request form
+   - Request status tracking
+
+4. **Advisor Pages**
+   - Dashboard with capacity overview
+   - Request management
+   - Profile management
+
+### Phase 2: Admin & Management (สัปดาห์ที่ 3)
+1. **Admin Pages**
+   - Master data management (Faculty, Department, Program, Expertise, Academic Term)
+   - User management (Student/Advisor)
+   - System dashboard
+
+2. **Advanced Features**
+   - File upload with preview
+   - Real-time notifications
+   - Advanced filtering and search
+
+### Phase 3: Testing & Polish (สัปดาห์ที่ 4)
+1. **Testing**
+   - Unit tests
+   - Integration tests
+   - User acceptance testing
+   - Security testing
+
+2. **Performance & UX**
+   - Loading states
+   - Error handling
+   - Responsive design
+   - Accessibility
+
+### Phase 4: Deployment & Documentation (สัปดาห์ที่ 5)
+1. **Deployment**
+   - XAMPP setup
+   - Production configuration
+   - Database migration
+
+2. **Documentation**
+   - User manual
+   - API documentation
+   - Admin guide
+
+## รายละเอียดการพัฒนา
+
+### Frontend Components ที่ต้องสร้าง
+1. **Layout Components**
+   - Header with navigation
+   - Sidebar for admin
+   - Footer
+
+2. **Form Components**
+   - Input fields with validation
+   - Dropdown selectors
+   - File upload with preview
+   - Form submission handling
+
+3. **Data Display**
+   - Tables with pagination
+   - Cards for advisor profiles
+   - Status badges
+   - Progress indicators
+
+4. **Interactive Elements**
+   - Modals for confirmations
+   - Toast notifications
+   - Loading spinners
+   - Error messages
+
+### API Endpoints ที่ต้องเชื่อมต่อ
+1. **Authentication**
+   - POST /api/auth/login
+   - POST /api/auth/logout
+
+2. **Student Management**
+   - POST /api/students (register)
+   - GET /api/students/:id
+   - PUT /api/students/:id
+
+3. **Advisor Management**
+   - POST /api/advisors (register)
+   - GET /api/advisors (list with filters)
+   - GET /api/advisors/:id
+   - PUT /api/advisors/:id
+
+4. **Request Management**
+   - POST /api/requests (submit)
+   - GET /api/requests (list)
+   - GET /api/requests/:id
+   - PUT /api/requests/:id/status
+   - POST /api/requests/upload-file
+
+5. **Master Data**
+   - GET /api/helpers/faculties
+   - GET /api/helpers/departments
+   - GET /api/helpers/programs
+   - GET /api/helpers/expertises
+   - GET /api/helpers/academic_terms
+
+6. **Admin Management** (ต้องสร้างใหม่)
+   - GET /api/admin/users
+   - GET /api/admin/users/:id
+   - PUT /api/admin/users/:id
+   - DELETE /api/admin/users/:id
+   - POST /api/admin/users/:id/reset-password
+
+### Database Tables ที่ต้องเพิ่ม
+1. **User Management**
+   - user_status (active, suspended, deleted)
+   - user_audit_log (track changes)
+
+2. **System Configuration**
+   - system_settings (configurable parameters)
+   - notification_templates
+
+## ข้อควรระวัง
+
+### Security
+- Input validation ทั้ง client และ server
+- SQL injection prevention
+- XSS protection
+- CSRF protection
+- File upload security
+
+### Performance
+- Database indexing
+- API response caching
+- Image optimization
+- Lazy loading
+
+### User Experience
+- Responsive design
+- Loading states
+- Error handling
+- Accessibility compliance
+
+## การทดสอบ
+
+### Unit Testing
+- Authentication functions
+- Business logic validation
+- API endpoint responses
+
+### Integration Testing
+- Complete user flows
+- Database transactions
+- File upload/download
+
+### User Acceptance Testing
+- All user roles
+- All major features
+- Edge cases
+
+## การติดตั้งและใช้งาน
+
+### Development Environment
+- XAMPP (Apache + MySQL + PHP)
+- Node.js + Next.js
+- Git version control
+
+### Production Environment
+- Web server configuration
+- Database optimization
+- Security hardening
+
+## สรุป
+
+ระบบนี้มีโครงสร้างที่สมบูรณ์และพร้อมสำหรับการพัฒนา โดยแบ่งเป็น 4 phases หลัก เพื่อให้สามารถพัฒนาและทดสอบได้อย่างเป็นระบบ และสามารถขยายฟีเจอร์เพิ่มเติมในอนาคตได้
+
+การพัฒนาจะเริ่มจาก Frontend Core ก่อน เพื่อให้ผู้ใช้งานสามารถใช้งานระบบได้พื้นฐาน แล้วจึงเพิ่มฟีเจอร์ขั้นสูงและการจัดการระบบในภายหลัง

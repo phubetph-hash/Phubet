@@ -1,0 +1,331 @@
+Project Advisor System - เอกสารอ้างอิง (ภาษาไทย อธิบาย, คง keyword ภาษาอังกฤษ)
+
+1) ภาพรวม (Overview)
+- วัตถุประสงค์: ระบบเว็บช่วยจับคู่นิสิตกับอาจารย์ที่ปรึกษา จัดการคำขอ (request) การอนุมัติ/ปฏิเสธ และติดตามสถานะได้เป็นระบบ
+- กลุ่มผู้ใช้: Student, Advisor, Administrator
+- เทคโนโลยีในโปรเจกต์: Frontend (Next.js/React), Backend (PHP/XAMPP – เริ่มต้น), Database (MySQL – ฐานข้อมูลชื่อ AdvisorDB)
+
+2) ฟีเจอร์หลักแยกตามบทบาท (Features by Role)
+2.1 Student
+- ลงทะเบียน/เข้าสู่ระบบ
+- ค้นหา/กรองอาจารย์ตามชื่อ, ความเชี่ยวชาญ (expertise), สาขา (program), คณะ (faculty), จำนวนที่ยังรับได้ (available capacity)
+- ส่งคำขอปรึกษา (submit request): เลือก academic_term, ระบุ project_title, project_detail, แนบไฟล์ proposal PDF
+- ติดตามสถานะคำขอ: status = 'รอดำเนินการ'/'อนุมัติ'/'ปฏิเสธ'/'หมดอายุ' พร้อมวันที่เกี่ยวข้อง
+- จัดการโปรไฟล์: prefix, first_name, last_name, student_id, faculty/department/program, image, password
+
+2.2 Advisor
+- ลงทะเบียน/เข้าสู่ระบบ
+- จัดการคำขอที่ได้รับ: เปิดดูรายละเอียด/ไฟล์ PDF, อนุมัติหรือปฏิเสธ พร้อม suggestion
+- จัดการโปรไฟล์: prefix, first_name, last_name, academic_rank, academic_degree, expertise (หลายรายการ), interests, phone, faculty/department/program, image, password, project_capacity
+- แดชบอร์ด: แสดง approved count เทียบกับ project_capacity และสถิติคำขอ
+
+2.3 Administrator
+- เข้าสู่ระบบ
+- จัดการข้อมูลหลัก (master data): faculty, department, program, expertise, academic_term
+- จัดการโปรไฟล์ตนเอง
+
+3) กฎเกณฑ์ทางธุรกิจ (Business Rules)
+- ส่ง request ได้เมื่อ advisor ยังมี available capacity (> 0) และไม่มี request สถานะค้างกับอาจารย์คนเดิม
+- จำกัดพร้อมกัน: นิสิตสามารถมี request สถานะ 'รอดำเนินการ' พร้อมกันได้สูงสุด 5 รายการ (คนละอาจารย์)
+- ยกเลิกอัตโนมัติ: เมื่อมี request ใดของนิสิตถูก 'อนุมัติ' ให้ปรับ request อื่นๆ ของนิสิตที่ยัง 'รอดำเนินการ' เป็น 'ปฏิเสธ' อัตโนมัติ
+  - แนวทางในสคีมาปัจจุบัน: update สถานะเป็น 'ปฏิเสธ' และใส่ suggestion = 'auto-cancel: advisor accepted another request'
+  - ทางเลือก: ถ้าต้องการแยกจากการปฏิเสธปกติ อาจเพิ่มสถานะ 'ยกเลิก' (ต้องแก้ ENUM ของ status)
+- อนุมัติ: status → 'อนุมัติ', approve_date = วันนี้, นับจำนวนที่อนุมัติของอาจารย์เพิ่มขึ้น (ใช้คิวรีจากตาราง request)
+- ปฏิเสธ: status → 'ปฏิเสธ', approve_date = วันนี้, ต้องมี suggestion
+- หมดอายุ: expire_date = submit_date + 7 วัน; หากยัง 'รอดำเนินการ' เมื่อถึงกำหนด ให้เปลี่ยนเป็น 'หมดอายุ' (ทำงานด้วย job/cron หรือ logic ตอนอ่านข้อมูล)
+- อีเมลต้องไม่ซ้ำภายในแต่ละตารางผู้ใช้ (student, advisor, administrator)
+- ถ้าต้องการบังคับ “นิสิตมีอาจารย์ประจำปัจจุบันได้ 1 คน” ให้ใช้ตารางเสริม student_advisor (ตัวเลือก)
+
+4) โครงสร้างฐานข้อมูล (Database Schema: AdvisorDB)
+4.1 ตารางข้อมูลหลัก (Master)
+- `faculty(faculty_id PK, faculty_name, created_at, updated_at)`
+- `department(department_id PK, department_name, faculty_id FK→faculty, created_at, updated_at)`
+- `program(program_id PK, program_name, department_id FK→department, created_at, updated_at)`
+- `expertise(expertise_id PK, expertise_name, created_at, updated_at)`
+- `academic_term(academic_term_id PK, academic_year, term ENUM('ต้น','ปลาย','ฤดูร้อน'), timestamps)`
+- `academic_rank(academic_rank_id PK, rank_code UNIQUE, rank_name_th, rank_name_en, sort_order, is_active, timestamps)`
+- `academic_degree(academic_degree_id PK, degree_code UNIQUE, degree_name_th, degree_name_en, sort_order, is_active, timestamps)`
+
+4.2 ผู้ใช้ (Users)
+- `student(student_id PK varchar(20), prefix, first_name, last_name, image, email UNIQUE, password, faculty_id FK, department_id FK, program_id FK, timestamps)`
+- `advisor(advisor_id PK, prefix, first_name, last_name, image, academic_rank_id FK, academic_degree_id FK, phone, email UNIQUE, password, project_capacity, faculty_id FK, department_id FK, program_id FK, interests, timestamps)`
+- `administrator(admin_id PK, prefix, first_name, last_name, image, email UNIQUE, password, timestamps)`
+- `advisor_expertise(advisor_id FK, expertise_id FK, PRIMARY KEY(advisor_id, expertise_id))`
+
+4.3 คำขอ (Requests)
+- `request(request_id PK, student_id FK, advisor_id FK, academic_term_id FK, submit_date, project_title, project_detail, proposal_file, status ENUM('รอดำเนินการ','อนุมัติ','ปฏิเสธ','หมดอายุ'), approve_date, expire_date, suggestion, timestamps)`
+
+4.4 ความสัมพันธ์เสริม (ตัวเลือก)
+- `student_advisor(student_id PK FK→student, advisor_id FK→advisor, assigned_at, ended_at NULL)` ใช้เก็บผู้แนะนำปัจจุบัน/ประวัติ
+
+4.5 มุมมอง (Views)
+- `advisor_capacity_view` แสดง project_capacity, approved_requests, available_capacity ต่ออาจารย์แต่ละคน
+
+4.6 ดัชนีขั้นต่ำ (Indexes)
+- `student(email)`
+- `advisor(email, faculty_id, program_id, academic_rank_id, academic_degree_id)`
+- `request(student_id, advisor_id, status, submit_date)`
+
+4.7 ข้อมูลตั้งต้น (Seeds)
+- `academic_term`: ตัวอย่าง 2567/ปลาย, 2568/ต้น
+- `academic_rank`: LECT อาจารย์, ASST ผู้ช่วยศาสตราจารย์, ASSOC รองศาสตราจารย์, PROF ศาสตราจารย์
+- `academic_degree`: NONE (ว่าง), PHD (ดร./Ph.D.)
+ - บัญชีผู้ดูแลเริ่มต้น (เข้าใช้ครั้งแรก): email = admin, password = 123456 (แฮชด้วย SHA2-256 ตอน import)
+
+4.8 Pseudocode/SQL สำหรับกฎสำคัญ
+
+4.8.1 การส่งคำขอ (Submit) จำกัด Pending ≤ 5 และเช็ก capacity ของอาจารย์
+```sql
+-- ทำงานภายใน transaction
+START TRANSACTION;
+
+-- ล็อกจำนวนคำขอค้างของนิสิตเพื่อกัน race
+SELECT COUNT(*) AS pending_cnt
+FROM request
+WHERE student_id = :studentId AND status = 'รอดำเนินการ'
+FOR UPDATE;
+
+-- ถ้า pending_cnt >= 5 ให้ ROLLBACK และคืน error
+
+-- ตรวจ capacity (แบบง่าย): ล็อกจำนวนที่อนุมัติแล้วของอาจารย์
+SELECT COUNT(*) AS approved_cnt
+FROM request
+WHERE advisor_id = :advisorId AND status = 'อนุมัติ'
+FOR UPDATE;
+
+-- อ่าน project_capacity ของอาจารย์
+SELECT project_capacity FROM advisor WHERE advisor_id = :advisorId FOR UPDATE;
+
+-- ถ้า approved_cnt >= project_capacity → ROLLBACK และคืน error
+
+-- บันทึกคำขอใหม่สถานะ 'รอดำเนินการ'
+INSERT INTO request (
+  student_id, advisor_id, academic_term_id, submit_date,
+  project_title, project_detail, proposal_file, status, expire_date
+) VALUES (
+  :studentId, :advisorId, :termId, CURRENT_DATE,
+  :title, :detail, :filePath, 'รอดำเนินการ', DATE_ADD(CURRENT_DATE, INTERVAL 7 DAY)
+);
+
+COMMIT;
+```
+
+4.8.2 การอนุมัติ (Approve) และยกเลิกคำขออื่นอัตโนมัติ
+```sql
+-- ทำงานภายใน transaction
+START TRANSACTION;
+
+-- ล็อกคำขอเป้าหมาย (ต้องเป็น 'รอดำเนินการ')
+SELECT * FROM request WHERE request_id = :requestId AND status = 'รอดำเนินการ' FOR UPDATE;
+
+-- อนุมัติคำขอ
+UPDATE request
+SET status = 'อนุมัติ', approve_date = CURRENT_DATE
+WHERE request_id = :requestId AND status = 'รอดำเนินการ';
+
+-- ยกเลิกคำขออื่นของนิสิตที่ยังค้างอยู่
+UPDATE request
+SET status = 'ปฏิเสธ',
+    suggestion = CONCAT('auto-cancel: advisor accepted request #', :requestId)
+WHERE student_id = (SELECT student_id FROM request WHERE request_id = :requestId)
+  AND status = 'รอดำเนินการ'
+  AND request_id <> :requestId;
+
+-- ตัวเลือก: อัปเดตตาราง student_advisor ให้สะท้อนอาจารย์ปัจจุบัน
+-- INSERT INTO student_advisor (student_id, advisor_id, assigned_at)
+-- VALUES (:studentId, :advisorId, NOW())
+-- ON DUPLICATE KEY UPDATE advisor_id = VALUES(advisor_id), assigned_at = NOW(), ended_at = NULL;
+
+COMMIT;
+```
+
+5) หน้าจอ (UI/UX Pages)
+- `/login` หน้าเข้าสู่ระบบ
+- `/register` ลงทะเบียน (สลับ Student/Advisor)
+- `/dashboard` แดชบอร์ดนิสิต (ค้นหา advisor, สถิติคำขอ)
+- `/advisor` รายการอาจารย์ + ค้นหา/กรอง
+- `/advisor/[id]` รายละเอียดอาจารย์ + ปุ่มส่งคำขอ
+- `/request-status` รายการคำขอของนิสิต
+- `/profile` โปรไฟล์นิสิต + เปลี่ยนรหัสผ่าน
+- `/advisor/dashboard` แดชบอร์ดอาจารย์ (ความจุ/สถิติ)
+- `/advisor/requests` จัดการคำขอ (approve/reject/suggest)
+- `/admin/*` จัดการ master data
+
+6) API (ข้อเสนอเบื้องต้น – ปรับตาม PHP implementation ได้)
+6.1 Auth
+- `POST /api/auth/login` {email, password}
+  - แบบไม่ต้องเลือกบทบาท: ฝั่งเซิร์ฟเวอร์คิวรี `auth_accounts` เพื่อค้นหาบัญชีและคืน `role` + `user_id` เมื่อสำเร็จ
+- `POST /api/auth/logout`
+
+6.2 Student
+- `POST /api/students`
+- `GET  /api/students/:id`
+- `PUT  /api/students/:id`
+
+6.3 Advisor
+- `POST /api/advisors`
+- `GET  /api/advisors` (ตัวกรอง: q, expertise_id, program_id, faculty_id, available_only)
+- `GET  /api/advisors/:id`
+- `PUT  /api/advisors/:id`
+
+6.4 Requests
+- `POST /api/requests`
+- `GET  /api/requests?student_id=...`
+- `GET  /api/requests?advisor_id=...`
+- `GET  /api/requests/:id`
+- `PATCH /api/requests/:id/status` {status: 'อนุมัติ'|'ปฏิเสธ', suggestion}
+- `POST /api/requests/:id/file`
+
+6.5 Master Data
+- CRUD: `faculty`, `department`, `program`, `expertise`, `academic_term`
+- GET helper สำหรับ dropdown
+
+7) การตรวจสอบความถูกต้อง (Validation)
+- รูปแบบอีเมล + ไม่ซ้ำในแต่ละตารางผู้ใช้
+- ตอนสมัครต้องตรวจว่าอีเมลไม่อยู่ในทั้ง 3 ตาราง: ใช้ `SELECT COUNT(*) FROM auth_accounts WHERE email = ?` ต้องได้ 0 ก่อนอนุญาตให้สมัคร
+- รหัสผ่านเก็บเป็น hash (bcrypt)
+- อัปโหลดไฟล์: PDF เท่านั้น, สูงสุด 5 MB, ตรวจ MIME, sanitize ชื่อไฟล์
+- คำขอ: บังคับกรอก project_title และ project_detail (แนะนำ ≥ 100 ตัวอักษร)
+- Guard capacity ตอน submit/approve และห้ามมี pending request ซ้ำคู่ (student, advisor)
+
+ภาคผนวก: ตัวอย่าง SQL ฝั่ง Auth
+- คิวรี login แบบไม่เลือก role: `SELECT role, user_id, password_hash FROM auth_accounts WHERE email = ?;`
+- ตรวจอีเมลซ้ำตอนสมัคร: `SELECT COUNT(*) FROM auth_accounts WHERE email = ?;`
+
+8) ความปลอดภัย (Security)
+- Authentication: session/JWT ตามที่เลือกใช้
+- Authorization: RBAC ตามบทบาท
+- SQL: ใช้ prepared statements; สิทธิ์ผู้ใช้ DB ตามหลัก least privilege
+- XSS/CSRF: เข้ารหัส output, validate input, ใช้ CSRF token สำหรับคำสั่งเปลี่ยนสถานะ
+- Password: ใช้ `SHA2-256` ให้สอดคล้องกับ seed ปัจจุบันใน `DB_v1.sql` (สามารถย้ายไป `bcrypt` ได้ภายหลัง)
+
+ภาคผนวกเพิ่มเติม (Auth)
+- ตัวอย่างแฮชด้วย SQL: `SELECT SHA2('123456', 256);`
+
+9) การจัดเก็บไฟล์ (File Storage)
+- โฟลเดอร์: `backend/uploads/proposals/{request_id}/proposal.pdf`
+- เก็บขนาดไฟล์/ชนิดไฟล์ (metadata – เพิ่มได้ในอนาคต)
+- สิทธิ์เข้าถึง: เจ้าของนิสิต, อาจารย์ปลายทาง, ผู้ดูแล
+
+10) แนวปฏิบัติด้านการทำงาน (Operational)
+- timestamps: ใช้ `created_at`, `updated_at` ในตารางหลัก
+- FK actions: `RESTRICT` สำหรับ master/users; `CASCADE` ที่ `advisor_expertise`
+- งานหมดอายุ: ตั้ง `cron` รายวัน หรือคำนวณขณะอ่านข้อมูล
+
+11) เช็กลิสต์การพัฒนา (Implementation Checklist)
+- Database: import `DB_v1.sql` เพื่อสร้าง AdvisorDB + seeds
+- Backend (PHP):
+  - Auth (login/logout)
+  - Endpoints: Student, Advisor, Requests, Admin master data
+  - Middleware: ตรวจสิทธิ์ตาม role
+  - Upload: รับ/ตรวจไฟล์ PDF + เก็บเส้นทางไฟล์
+- Frontend (Next.js):
+  - ฟอร์ม: login/register
+  - หน้า advisor list + filter + pagination
+  - ฟอร์มส่งคำขอ + preview PDF
+  - หน้า request status + detail
+  - แดชบอร์ดอาจารย์ + แท็บคำขอ
+  - หน้าจัดการ master data (admin)
+  - หน้าโปรไฟล์ + เปลี่ยนรหัสผ่าน
+
+12) แผนการทดสอบ (Testing)
+- Unit: ตรวจฟังก์ชัน login/validate/capacity/status/file
+- Integration: submit → DB, approve → status/capacity, upload → store
+- System: ครบทุก flow ของแต่ละบทบาท
+- Security: SQLi, XSS, CSRF, file upload, session
+- Performance: ใช้ index ให้เหมาะสม, list ใช้ pagination
+
+13) Milestones (แนะนำ)
+- M1: สคีมา/Seeds เสร็จ + Auth + Registration
+- M2: Advisor list + Submit request
+- M3: Advisor manage requests + Capacity
+- M4: Request status + Notification (พื้นฐาน)
+- M5: Admin master data
+- M6: File security + Tests
+- M7: UAT + เอกสาร
+
+14) คำศัพท์สำคัญ (Glossary – คง keyword)
+- Request = คำขอปรึกษา
+- Advisor = อาจารย์ที่ปรึกษา
+- Student = นิสิต/นักศึกษา
+- Administrator = ผู้ดูแลระบบ
+- Expertise = ความเชี่ยวชาญ
+- Program/Department/Faculty = สาขา/ภาควิชา/คณะ
+- Academic Term = ปีการศึกษา/ภาคเรียน
+- Academic Rank = ตำแหน่งทางวิชาการ (LECT/ASST/ASSOC/PROF)
+- Academic Degree = วุฒิ (NONE/PHD)
+
+จบเอกสาร
+
+
+
+ภาคสรุปงานที่ดำเนินการ (อัปเดตล่าสุด)
+1) Database/SQL
+- ปรับสคีมาและ seed ครบ พร้อมแก้ปัญหา collation สำหรับ VIEW แบบรวมผู้ใช้
+  - คุมทั้งตารางให้ใช้ utf8mb4 + utf8mb4_unicode_ci และกำหนด column-level ให้ `email`, `password`
+  - VIEW `auth_accounts` สำหรับ roleless login (student/advisor/admin) แก้ปัญหา UNION โดยจัด collation ให้ตรงกัน และ cast ชนิด `user_id` ให้สอดคล้อง
+  - เพิ่ม VIEW `advisor_capacity_view` สำหรับคำนวณ `available_capacity`
+  - ใส่ข้อมูลตั้งต้น: faculty, department, program, expertise, academic_term, academic_rank, academic_degree
+  - เพิ่มผู้ดูแลเริ่มต้น: `admin@ku.th / 123456` (SHA2-256) และตัวอย่างผู้ใช้ Student/Advisor (โดเมน `@ku.th`)
+- แนวทางใช้งาน/นำเข้า
+  - กรณี import ใหม่: DROP DATABASE แล้ว Import ไฟล์ SQL ล่าสุด → ตรวจ `SELECT * FROM auth_accounts;` ต้องแสดงข้อมูลครบและไม่ error
+
+2) Backend (PHP/XAMPP)
+- `backend/config.php`
+  - ตั้งค่า DB สำหรับ XAMPP (`root`/ค่าว่าง)
+  - CORS แบบ dynamic: สะท้อน `Origin` ที่เป็น `http://localhost:<port>` เพื่อรองรับ Next.js dev server หลายพอร์ต
+- `backend/api/auth/login.php`
+  - รองรับ roleless login ผ่าน VIEW `auth_accounts`, เทียบรหัสด้วย SHA2-256
+  - จัดลำดับ header/CORS ที่ถูกต้อง และย้ายการตั้งค่า CORS ไปไว้ `.htaccess` เพื่อลด header ซ้ำซ้อน
+- `.htaccess` (โฟลเดอร์ backend)
+  - เปิด `mod_rewrite` สำหรับ rewrite `api/...` → `api/....php`
+  - ตอบ CORS ทุก response + รองรับพรีไฟลต์ `OPTIONS` (204) และสะท้อนค่า `Origin`
+- Middleware/Utility
+  - Rate limit แบบ session/IP พื้นฐาน
+  - Jobs: สคริปต์หมดอายุคำขอ (expire pending)
+- Endpoints หลักที่มีให้ใช้งาน
+  - Auth: `POST /api/auth/login`, `POST /api/auth/logout`
+  - Students: create/get/update
+  - Advisors: create/get/list/update (+expertise mapping)
+  - Requests: create/list/detail/update-status/upload-file
+  - Helpers (dropdown): faculties, departments, programs, expertises, academic_terms
+  - Admin Users: list/detail/update/delete/reset-password/status
+
+3) Frontend (Next.js/React/Tailwind)
+- ตั้งค่า `frontend/.env.local` (ตัวอย่าง)
+  - `NEXT_PUBLIC_API_BASE_URL=http://localhost/project-advisor-system/backend`
+  - พร้อมตัวแปรไฟล์/เพจิเนชัน
+- สร้าง `src/lib/api.js` (ApiClient) เปิด `credentials: 'include'` สำหรับ session cookie, error handler, validation, constants, utils
+- หน้าจอ/คอมโพเนนต์หลัก
+  - Auth: `/login`, `/register` (Student/Advisor)
+  - Student: Dashboard, Advisor List/Detail, Submit Request, Request Status, Profile/Change Password
+  - Advisor: Dashboard, Manage Requests, Profile, Change Password
+  - Admin: Dashboard, Master Data, User Management
+- Login Flow
+  - ปรับ `LoginForm` ให้อ่านรูปแบบผลลัพธ์ `{status: 'ok', data}` หรือ `{success: true, data}` และ normalize role (`admin` → `administrator`) ก่อน redirect
+
+4) ปัญหา/การแก้ไขที่สำคัญ
+- Collation Error (VIEW `auth_accounts`): จัด collation ของตาราง/คอลัมน์ให้ตรงกัน และปรับ VIEW ให้สอดคล้อง → ใช้งานได้แล้ว
+- CORS/Failed to fetch:
+  - ย้าย CORS ไป `.htaccess`, เพิ่มพรีไฟลต์ 204, สะท้อน Origin ตามพอร์ต Next.js
+  - ปรับ `config.php` ให้ยอมรับหลายพอร์ต, ตรวจลำดับ header ใน `login.php`, เพิ่ม `ob_start/ob_end_clean` เมื่อจำเป็น
+  - ตรวจ Apache/XAMPP และ URL ฐานให้ถูก (`/project-advisor-system/backend`)
+- Email Domain: แก้ข้อมูลตัวอย่างให้เป็น `@ku.th` ทั้งหมดตามการใช้งานจริง
+
+5) วิธีรันระบบ (สรุปสั้น)
+- Backend/XAMPP
+  1. Start Apache + MySQL (ตรวจว่า `http://localhost/` เข้าถึงได้)
+  2. Import DB ผ่าน phpMyAdmin (ไฟล์ล่าสุด) → ทดสอบ `http://localhost/project-advisor-system/backend/api/auth/login` (ควรได้ Method not allowed)
+- Frontend/Next.js
+  1. ตรวจ `frontend/.env.local` ว่าชี้ `NEXT_PUBLIC_API_BASE_URL` ไปยัง backend
+  2. รัน `npm run dev` (พอร์ต 300x) → เปิด `http://localhost:300x/login`
+- ทดสอบล็อกอิน
+  - Admin: `admin@ku.th / 123456`
+  - ตัวอย่าง Student/Advisor ดูจากฐานข้อมูล (โดเมน `@ku.th`)
+
+6) หมายเหตุ/แนวทางต่อยอด
+- ปกป้องหน้า (Protected Routes) ฝั่ง frontend ตาม session
+- เพิ่มหน้า 401/403, ปุ่ม Logout, ตรวจสถานะ session อัตโนมัติ
+- ย้ายการแฮชรหัสผ่านเป็น `bcrypt` ในระยะถัดไป พร้อม flow เปลี่ยนรหัสผ่าน/รีเซ็ต
+- เพิ่มการทดสอบอัตโนมัติ (TESTING_GUIDE.md) และขั้นตอน Deploy (DEPLOYMENT_GUIDE.md)
+

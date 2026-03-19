@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>จองนัดหมาย - Calendar App</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: #4285f4;
+            color: white;
+            padding: 24px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 16px;
+        }
+        
+        .content {
+            padding: 32px;
+        }
+        
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 32px;
+        }
+        
+        .step {
+            display: flex;
+            align-items: center;
+            margin: 0 16px;
+        }
+        
+        .step-number {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #e8f0fe;
+            color: #4285f4;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            margin-right: 8px;
+        }
+        
+        .step-number.active {
+            background: #4285f4;
+            color: white;
+        }
+        
+        .step-text {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .step-text.active {
+            color: #4285f4;
+            font-weight: 600;
+        }
+        
+        .form-section {
+            margin-bottom: 32px;
+        }
+        
+        .form-section h3 {
+            font-size: 18px;
+            margin-bottom: 16px;
+            color: #333;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #555;
+        }
+        
+        .form-group input, 
+        .form-group select, 
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.2s;
+        }
+        
+        .form-group input:focus, 
+        .form-group select:focus, 
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #4285f4;
+        }
+        
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+        
+        .calendar-header {
+            text-align: center;
+            padding: 12px;
+            font-weight: 600;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .calendar-day {
+            aspect-ratio: 1;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+        
+        .calendar-day:hover {
+            border-color: #4285f4;
+            background: #f8f9ff;
+        }
+        
+        .calendar-day.selected {
+            background: #4285f4;
+            color: white;
+            border-color: #4285f4;
+        }
+        
+        .calendar-day.disabled {
+            background: #f5f5f5;
+            color: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .time-slots {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        
+        .time-slot {
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .time-slot:hover {
+            border-color: #4285f4;
+            background: #f8f9ff;
+        }
+        
+        .time-slot.selected {
+            background: #4285f4;
+            color: white;
+            border-color: #4285f4;
+        }
+        
+        /* สีตามประเภทงาน */
+        .time-slot.unavailable {
+            background: #f5f5f5;
+            color: #999;
+            cursor: not-allowed;
+            border-color: #ddd;
+        }
+        
+        .time-slot.travel {
+            background: #e1bee7;
+            border-color: #9c27b0;
+            color: #4a148c;
+        }
+        
+        .time-slot.online {
+            background: #bbdefb;
+            border-color: #2196f3;
+            color: #0d47a1;
+        }
+        
+        .time-slot.other {
+            background: #c8e6c9;
+            border-color: #4caf50;
+            color: #1b5e20;
+        }
+        
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin: 24px 0;
+            padding: 16px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+        
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+        }
+        
+        .legend-color.gray { background: #f5f5f5; border: 1px solid #ddd; }
+        .legend-color.purple { background: #e1bee7; }
+        .legend-color.blue { background: #bbdefb; }
+        .legend-color.green { background: #c8e6c9; }
+        
+        .booking-summary {
+            background: #f8f9ff;
+            border: 1px solid #e3f2fd;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 24px 0;
+        }
+        
+        .booking-summary h4 {
+            color: #4285f4;
+            margin-bottom: 12px;
+        }
+        
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        
+        .summary-label {
+            color: #666;
+        }
+        
+        .summary-value {
+            font-weight: 500;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 16px;
+            justify-content: flex-end;
+            margin-top: 32px;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border-radius: 8px;
+            border: none;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: #4285f4;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #3367d6;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(66, 133, 244, 0.3);
+        }
+        
+        .btn-secondary {
+            background: white;
+            color: #666;
+            border: 2px solid #e0e0e0;
+        }
+        
+        .btn-secondary:hover {
+            border-color: #4285f4;
+            color: #4285f4;
+        }
+        
+        .success-message {
+            text-align: center;
+            padding: 40px;
+            display: none;
+        }
+        
+        .success-icon {
+            width: 64px;
+            height: 64px;
+            background: #4caf50;
+            border-radius: 50%;
+            margin: 0 auto 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 32px;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                margin: 0;
+                border-radius: 0;
+                min-height: 100vh;
+            }
+            
+            .content {
+                padding: 20px;
+            }
+            
+            .time-slots {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📅 จองนัดหมาย</h1>
+            <p>เลือกวันและเวลาที่ต้องการนัดหมาย</p>
+        </div>
+        
+        <div class="content" id="booking-form">
+            <!-- Step Indicator -->
+            <div class="step-indicator">
+                <div class="step">
+                    <div class="step-number active">1</div>
+                    <div class="step-text active">ข้อมูลการนัด</div>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-text">เลือกวันเวลา</div>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-text">ยืนยัน</div>
+                </div>
+            </div>
+            
+            <!-- ข้อมูลการนัด -->
+            <div class="form-section">
+                <h3>📝 ข้อมูลการนัดหมาย</h3>
+                
+                <div class="form-group">
+                    <label for="meetingType">ประเภทการนัด</label>
+                    <select id="meetingType">
+                        <option value="">เลือกประเภทการนัด</option>
+                        <option value="online">📹 ประชุมออนไลน์</option>
+                        <option value="travel">🚗 งานที่ต้องเดินทาง</option>
+                        <option value="other">📋 งานอื่นๆ</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="meetingTitle">หัวข้อการนัดหมาย</label>
+                    <input type="text" id="meetingTitle" placeholder="พิมพ์หัวข้อการนัดหมาย...">
+                </div>
+                
+                <div class="form-group">
+                    <label for="clientName">ชื่อผู้จอง</label>
+                    <input type="text" id="clientName" placeholder="ชื่อ-นามสกุล">
+                </div>
+                
+                <div class="form-group">
+                    <label for="clientEmail">อีเมล</label>
+                    <input type="email" id="clientEmail" placeholder="example@email.com">
+                </div>
+                
+                <div class="form-group">
+                    <label for="location">สถานที่</label>
+                    <input type="text" id="location" placeholder="สถานที่นัดหมาย (ถ้ามี)">
+                </div>
+                
+                <div class="form-group">
+                    <label for="notes">หมายเหตุ</label>
+                    <textarea id="notes" rows="3" placeholder="รายละเอียดเพิ่มเติม..."></textarea>
+                </div>
+            </div>
+            
+            <!-- เลือกวันที่ -->
+            <div class="form-section">
+                <h3>📅 เลือกวันที่</h3>
+                
+                <div class="calendar-grid">
+                    <div class="calendar-header">อา</div>
+                    <div class="calendar-header">จ</div>
+                    <div class="calendar-header">อ</div>
+                    <div class="calendar-header">พ</div>
+                    <div class="calendar-header">พฤ</div>
+                    <div class="calendar-header">ศ</div>
+                    <div class="calendar-header">ส</div>
+                    
+                    <!-- ตัวอย่างวันที่ -->
+                    <div class="calendar-day disabled">25</div>
+                    <div class="calendar-day disabled">26</div>
+                    <div class="calendar-day disabled">27</div>
+                    <div class="calendar-day disabled">28</div>
+                    <div class="calendar-day disabled">29</div>
+                    <div class="calendar-day disabled">30</div>
+                    <div class="calendar-day">1</div>
+                    <div class="calendar-day">2</div>
+                    <div class="calendar-day">3</div>
+                    <div class="calendar-day">4</div>
+                    <div class="calendar-day">5</div>
+                    <div class="calendar-day selected">6</div>
+                    <div class="calendar-day">7</div>
+                    <div class="calendar-day">8</div>
+                    <div class="calendar-day">9</div>
+                    <div class="calendar-day">10</div>
+                    <div class="calendar-day">11</div>
+                    <div class="calendar-day">12</div>
+                    <div class="calendar-day">13</div>
+                    <div class="calendar-day">14</div>
+                    <div class="calendar-day">15</div>
+                </div>
+            </div>
+            
+            <!-- เลือกเวลา -->
+            <div class="form-section">
+                <h3>⏰ เลือกเวลา (6 ธันวาคม 2025)</h3>
+                
+                <!-- Legend สีความหมาย -->
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color gray"></div>
+                        <span>ไม่ว่าง</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color purple"></div>
+                        <span>งานเดินทาง</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color blue"></div>
+                        <span>ประชุมออนไลน์</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color green"></div>
+                        <span>งานอื่นๆ</span>
+                    </div>
+                </div>
+                
+                <div class="time-slots">
+                    <div class="time-slot">09:00</div>
+                    <div class="time-slot unavailable">09:30</div>
+                    <div class="time-slot selected">10:00</div>
+                    <div class="time-slot">10:30</div>
+                    <div class="time-slot travel">11:00</div>
+                    <div class="time-slot online">11:30</div>
+                    <div class="time-slot">12:00</div>
+                    <div class="time-slot unavailable">12:30</div>
+                    <div class="time-slot">13:00</div>
+                    <div class="time-slot">13:30</div>
+                    <div class="time-slot other">14:00</div>
+                    <div class="time-slot">14:30</div>
+                    <div class="time-slot">15:00</div>
+                    <div class="time-slot online">15:30</div>
+                    <div class="time-slot">16:00</div>
+                    <div class="time-slot unavailable">16:30</div>
+                </div>
+            </div>
+            
+            <!-- สรุปการจอง -->
+            <div class="booking-summary">
+                <h4>📋 สรุปการจองนัดหมาย</h4>
+                <div class="summary-item">
+                    <span class="summary-label">ประเภท:</span>
+                    <span class="summary-value">งานอื่นๆ</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">หัวข้อ:</span>
+                    <span class="summary-value">ประชุมงานโปรเจค</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">วันที่:</span>
+                    <span class="summary-value">6 ธันวาคม 2025</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">เวลา:</span>
+                    <span class="summary-value">10:00 น.</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">ผู้จอง:</span>
+                    <span class="summary-value">นายตัวอย่าง ตัวอย่าง</span>
+                </div>
+            </div>
+            
+            <!-- ปุ่ม -->
+            <div class="button-group">
+                <button class="btn btn-secondary">ย้อนกลับ</button>
+                <button class="btn btn-primary" onclick="showSuccess()">ยืนยันการจอง</button>
+            </div>
+        </div>
+        
+        <!-- ข้อความสำเร็จ -->
+        <div class="success-message" id="success-message">
+            <div class="success-icon">✓</div>
+            <h2 style="color: #4caf50; margin-bottom: 16px;">จองนัดหมายสำเร็จ!</h2>
+            <p style="color: #666; margin-bottom: 24px;">
+                การนัดหมายของคุณได้รับการยืนยันแล้ว<br>
+                ระบบจะส่งอีเมลยืนยันให้คุณในอีกสักครู่
+            </p>
+            <div class="booking-summary">
+                <h4>📋 รายละเอียดการนัดหมาย</h4>
+                <div class="summary-item">
+                    <span class="summary-label">รหัสการจอง:</span>
+                    <span class="summary-value">#APT-2025-001</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">วันที่:</span>
+                    <span class="summary-value">6 ธันวาคม 2025</span>
+                </div>
+                <div class="summary-item">
+                    <span class="summary-label">เวลา:</span>
+                    <span class="summary-value">10:00 - 11:00 น.</span>
+                </div>
+            </div>
+            <button class="btn btn-primary" onclick="location.reload()">จองนัดใหม่</button>
+        </div>
+    </div>
+    
+    <script>
+        // ตัวอย่าง JavaScript สำหรับ interaction
+        function showSuccess() {
+            document.getElementById('booking-form').style.display = 'none';
+            document.getElementById('success-message').style.display = 'block';
+        }
+        
+        // เลือกวันที่
+        document.querySelectorAll('.calendar-day').forEach(day => {
+            day.addEventListener('click', function() {
+                if (!this.classList.contains('disabled')) {
+                    document.querySelectorAll('.calendar-day').forEach(d => d.classList.remove('selected'));
+                    this.classList.add('selected');
+                }
+            });
+        });
+        
+        // เลือกเวลา
+        document.querySelectorAll('.time-slot').forEach(slot => {
+            slot.addEventListener('click', function() {
+                if (!this.classList.contains('unavailable') && 
+                    !this.classList.contains('travel') && 
+                    !this.classList.contains('online') && 
+                    !this.classList.contains('other')) {
+                    document.querySelectorAll('.time-slot').forEach(s => s.classList.remove('selected'));
+                    this.classList.add('selected');
+                }
+            });
+        });
+        
+        // อัพเดทสีตาม dropdown
+        document.getElementById('meetingType').addEventListener('change', function() {
+            // ตัวอย่างการเปลี่ยนสีตามประเภท
+            console.log('Selected type:', this.value);
+        });
+    </script>
+</body>
+</html>
